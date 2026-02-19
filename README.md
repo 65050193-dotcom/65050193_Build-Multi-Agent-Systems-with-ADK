@@ -71,6 +71,7 @@ SequentialAgent (historical_court)
 │   └── judge_agent
 ├── verdict_writer
 └── verdict_saver
+```
 
 ---
 
@@ -82,6 +83,7 @@ SequentialAgent (historical_court)
 - **Tool-based Agents** – จัดการ state และเชื่อมต่อ external tools  
 
 ---
+
 
 ## **5) Agent Responsibilities**
 
