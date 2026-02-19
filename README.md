@@ -71,3 +71,184 @@ SequentialAgent (historical_court)
 │   └── judge_agent
 ├── verdict_writer
 └── verdict_saver
+### **4.1 Agent Types Used**
+
+- **SequentialAgent** – ควบคุม execution flow หลักของระบบ  
+- **ParallelAgent** – อนุญาตให้หลาย Agent ทำงานพร้อมกัน  
+- **LoopAgent** – จัดการกระบวนการทำงานแบบวนซ้ำ (iterative control)  
+- **Tool-based Agents** – จัดการ state และเชื่อมต่อ external tools  
+
+---
+
+## **5) Agent Responsibilities**
+
+### **5.1 Initializer**
+
+หน้าที่หลักคือกำหนดค่าเริ่มต้นให้กับ session state เช่น:
+
+- `topic`  
+- `pos_data`  
+- `neg_data`  
+- `loop_count`  
+- `max_loops`  
+
+Agent นี้ต้องทำงานก่อน Agent อื่นเสมอ เพื่อป้องกัน error จาก key ที่ยังไม่ถูกกำหนด
+
+---
+
+### **5.2 Inquiry Agent**
+
+หน้าที่:
+
+- ขอหัวข้อจากผู้ใช้  
+- ตรวจสอบว่าเป็น historical topic  
+- บันทึกค่าเข้าสู่ state  
+
+ตัวอย่างการเรียก tool:
+
+```python
+set_state(key="topic", value="<topic>")
+### **5.3 Admirer Agent**
+
+วิเคราะห์เฉพาะมุมมองเชิงบวก โดย:
+
+- ใช้ Wikipedia search  
+- ค้นหาคำเช่น `achievements`, `legacy`, `reforms`  
+- สร้าง bullet อย่างน้อย 3 ประเด็น  
+- บันทึกลง `pos_data`  
+
+---
+
+### **5.4 Critic Agent**
+
+วิเคราะห์เฉพาะมุมมองเชิงวิพากษ์ โดย:
+
+- ใช้ Wikipedia search  
+- ค้นหาคำเช่น `controversy`, `criticism`, `ethical issues`  
+- สร้าง bullet อย่างน้อย 3 ประเด็น  
+- บันทึกลง `neg_data`  
+
+---
+
+### **5.5 Judge Agent**
+
+ทำหน้าที่ควบคุมความสมดุลของข้อมูล
+
+ขั้นตอน:
+
+1. ตรวจนับจำนวน bullet ทั้งสองฝ่าย  
+2. หากครบ ≥ 3 ทั้งคู่ → เรียก `exit_loop()`  
+3. หากไม่ครบ → เพิ่มรอบ loop และปรับ keyword  
+4. จำกัดจำนวนรอบด้วย `max_loops`  
+
+การใช้ `LoopAgent` ทำให้ระบบสามารถ “ตรวจสอบและแก้ไขตนเอง” ได้ก่อนเข้าสู่ขั้นสรุป
+
+---
+
+### **5.6 Verdict Writer**
+
+สร้างรายงานฉบับสมบูรณ์โดยมีโครงสร้างดังนี้:
+
+- Introduction  
+- Positive Contributions  
+- Critical Perspectives  
+- Balanced Analysis  
+- Conclusion  
+
+เงื่อนไขสำคัญ:
+
+- ห้ามเลือกข้าง  
+- ห้ามประกาศผู้ชนะ  
+- ต้องรักษาน้ำเสียงเป็นกลาง  
+
+เมื่อเขียนเสร็จต้องบันทึกลง:
+
+```python
+set_state(key="verdict_text", value="<FULL REPORT>")
+```
+
+---
+
+### **5.7 Verdict Saver**
+
+หน้าที่:
+
+- เรียก `save_verdict()`  
+- บันทึกข้อมูลจาก `verdict_text` ลงไฟล์ `verdict.txt`  
+
+การแยก Writer และ Saver ช่วยให้ระบบมี modular structure ที่ชัดเจน
+
+---
+
+## **6) Session State Management**
+
+ระบบใช้ `ToolContext.state` เป็น shared memory ระหว่าง Agent
+
+### **6.1 State Variables**
+
+| Variable | Description |
+|----------|------------|
+| `topic` | หัวข้อประวัติศาสตร์ |
+| `pos_data` | ประเด็นด้านบวก |
+| `neg_data` | ประเด็นด้านลบ |
+| `pos_count` | จำนวน bullet ฝั่งบวก |
+| `neg_count` | จำนวน bullet ฝั่งลบ |
+| `loop_count` | จำนวนรอบปัจจุบัน |
+| `max_loops` | จำนวนรอบสูงสุด |
+| `verdict_text` | รายงานฉบับเต็ม |
+
+---
+
+### **6.2 State Injection Syntax**
+
+การอ้างอิงค่าภายใน instruction ใช้รูปแบบ:
+
+```text
+{topic?}
+{pos_data?}
+{neg_data?}
+```
+
+---
+
+## **7) Loop Termination Policy**
+
+การจบ loop ต้องทำผ่าน tool เท่านั้น:
+
+```python
+exit_loop()
+```
+
+ห้ามใช้ข้อความธรรมดาแทนคำสั่งจบ loop
+
+เหตุผล:
+
+- ควบคุม execution อย่างถูกต้องตาม ADK  
+- ป้องกัน premature termination  
+- ป้องกัน infinite execution  
+
+---
+
+## **8) System Strengths**
+
+- ใช้ Multi-Agent Architecture จริง  
+- มี Parallel Processing  
+- มี Quality Control Loop  
+- เชื่อมต่อ Wikipedia Tool  
+- มี State Management ชัดเจน  
+- ควบคุมการจบ Loop ตามมาตรฐาน ADK  
+- โครงสร้าง modular และขยายต่อได้  
+
+---
+
+## **9) Conclusion**
+
+ระบบ Historical Court แสดงให้เห็นว่า Multi-Agent System สามารถนำมาจำลองกระบวนการวิเคราะห์เชิงเหตุผลได้อย่างเป็นระบบ ผ่านกลไก:
+
+- การแยกบทบาท  
+- การวิเคราะห์หลายมุมมอง  
+- การควบคุมรอบการทำงาน  
+- การสร้างรายงานแบบเป็นกลาง  
+
+วัตถุประสงค์ของระบบไม่ใช่การตัดสินถูกหรือผิด  
+แต่เพื่อสะท้อนความซับซ้อนของประวัติศาสตร์ผ่านกระบวนการวิเคราะห์เชิงโครงสร้างและมีเหตุผล
