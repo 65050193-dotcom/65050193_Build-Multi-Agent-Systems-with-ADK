@@ -71,6 +71,9 @@ SequentialAgent (historical_court)
 │   └── judge_agent
 ├── verdict_writer
 └── verdict_saver
+
+
+
 ### **4.1 Agent Types Used**
 
 - **SequentialAgent** – ควบคุม execution flow หลักของระบบ  
