@@ -72,7 +72,7 @@ SequentialAgent (historical_court)
 ├── verdict_writer
 └── verdict_saver
 
-
+---
 
 ### **4.1 Agent Types Used**
 
